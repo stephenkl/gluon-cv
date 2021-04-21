@@ -205,7 +205,6 @@ class VideoClsDataset(Dataset):
             vr.seek(0)
             buffer = vr.get_batch(all_index).asnumpy()
             return buffer
-
         # handle temporal segments
         converted_len = int(self.clip_len * self.frame_sample_rate)
         seg_len = len(vr) // self.num_segment
@@ -213,21 +212,81 @@ class VideoClsDataset(Dataset):
         all_index = []
         for i in range(self.num_segment):
             if seg_len <= converted_len:
-                index = np.linspace(0, seg_len, num=seg_len // self.frame_sample_rate)
-                index = np.concatenate((index, np.ones(self.clip_len - seg_len // self.frame_sample_rate) * seg_len))
-                index = np.clip(index, 0, seg_len - 1).astype(np.int64)
+                index = list(range(1, seg_len))[::self.frame_sample_rate]
+                diff = self.clip_len - len(index)
+                if diff > 0:
+                    temp = int(seg_len / 2)
+                    for j in range(diff):
+
+                        while (temp in index):
+                            temp += 1
+                        index.append(temp)
+                        if temp >= seg_len:
+                            temp = 0
+                index.sort()
+                '''if len(index) == self.clip_len:
+                    print('success')
+                else:
+                    print('no')'''
+
+                # index = np.linspace(0, seg_len, num=seg_len // self.frame_sample_rate)
+                # index = np.concatenate((index, np.ones(self.clip_len - seg_len // self.frame_sample_rate) * seg_len))
+                # index = np.clip(index, 0, seg_len - 1).astype(np.int64)
+            # elif seg_len == self.clip_len:
+            # index = list(range(seg_len))
             else:
-                end_idx = np.random.randint(converted_len, seg_len)
-                str_idx = end_idx - converted_len
-                index = np.linspace(str_idx, end_idx, num=self.clip_len)
-                index = np.clip(index, str_idx, end_idx - 1).astype(np.int64)
-            index = index + i*seg_len
+                index = list(range(1, seg_len))[::self.frame_sample_rate]
+                diff = len(index) - self.clip_len
+                if diff > 0:
+                    front = 0
+                    back = seg_len - 1
+                    start_front = True
+                    for j in range(diff):
+                        if start_front:
+                            while (front not in index):
+                                front += 1
+                            index.remove(front)
+                            start_front = False
+                        else:
+                            while (back not in index):
+                                back -= 1
+                            index.remove(back)
+                            start_front = True
+                index.sort()
+                '''if len(index) == self.clip_len:
+                    print('success')
+                else:
+                    print('no')'''
+
+                # end_idx = np.random.randint(converted_len, seg_len)
+                # str_idx = end_idx - converted_len
+                # index = np.linspace(str_idx, end_idx, num=self.clip_len)
+                # index = np.clip(index, str_idx, end_idx - 1).astype(np.int64)
+            index = np.array(index) + i * seg_len
+            # print(len(index))
             all_index.extend(list(index))
 
         all_index = all_index[::int(sample_rate_scale)]
         vr.seek(0)
+        if all_index[-1] >= seg_len:
+            print(all_index)
+            # print('error')
+            t = 0
+            while (t in all_index):
+                t += 1
+                if t == seg_len:
+                    t = int(seg_len / 2)
+                    break
+            all_index[-1] = t
+            all_index.sort()
+            print(all_index)
+            print(fname)
+            print(len(all_index))
+            print(seg_len)
+
         buffer = vr.get_batch(all_index).asnumpy()
         return buffer
+
 
     def __len__(self):
         if self.mode != 'test':

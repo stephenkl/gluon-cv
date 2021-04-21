@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from gluoncv.torch.utils.coot_utils import compute_constrastive_loss, compute_cmc_loss
+from .coot_utils import compute_constrastive_loss, compute_cmc_loss#gluoncv.torch.utils.
 from . import coot_utils
 from .coot_utils import unpack_data
 from .utils import AverageMeter, accuracy
@@ -42,7 +42,7 @@ def train_classification(base_iter,
 
         outputs = model(train_batch)
         loss = criterion(outputs, train_label)
-        prec1, prec5 = accuracy(outputs.data, train_label, topk=(1, 5))
+        prec1, prec5 = accuracy(outputs.data, train_label, topk=(1, 3))
 
         optimizer.zero_grad()
         loss.backward()
@@ -99,7 +99,7 @@ def validation_classification(model, val_dataloader, epoch, criterion, cfg,
             outputs = model(val_batch)
 
             loss = criterion(outputs, val_label)
-            prec1a, prec5a = accuracy(outputs.data, val_label, topk=(1, 5))
+            prec1a, prec5a = accuracy(outputs.data, val_label, topk=(1, 3))
 
             losses.update(loss.item(), val_batch.size(0))
             top1.update(prec1a.item(), val_batch.size(0))
@@ -183,7 +183,7 @@ def test_classification(model, test_loader, criterion, cfg, file):
                                                    str(int(split_nb[i].cpu().numpy())))
                 final_result.append(string)
 
-            prec1, prec5 = accuracy(outputs.data, val_label, topk=(1, 5))
+            prec1, prec5 = accuracy(outputs.data, val_label, topk=(1, 3))
             losses.update(loss.item(), val_batch.size(0))
             top1.update(prec1.item(), val_batch.size(0))
             top5.update(prec5.item(), val_batch.size(0))
